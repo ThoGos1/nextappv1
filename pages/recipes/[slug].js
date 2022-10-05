@@ -2,6 +2,7 @@ import { createClient } from 'contentful';
 import Image from "next/image";
 import { documentToReactComponents } from '@contentful/rich-text-react-renderer';
 import { BLOCKS } from '@contentful/rich-text-types';
+import Skeleton from '../../components/Skeleton';
 
 
 // In this file, it's NOT placed inside a function like in index.js, because it's used twice.
@@ -23,7 +24,7 @@ export const getStaticPaths = async () => {
 
   return {
     paths,
-    fallback: false // This means that a 404 page will be shown if slug doesn't exist
+    fallback: true // False = means that a 404 page will be shown if slug doesn't exist
   }
 }
 
@@ -32,8 +33,19 @@ export async function getStaticProps({ params }) {
   // This returns an array, but there is only on this I know, don't worry about it
   const { items } = await client.getEntries({ content_type: 'recipe', 'fields.slug': params.slug });
 
+  // This says if there isn't an item, aka recipie, then just redirect to the homepage.
+  if(!items.length) {
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false
+      }
+    }
+  }
+
   return {
-    props: { recipe: items[0] }
+    props: { recipe: items[0] },
+    revalidate: 1 // This thing says that if data is change it will pull the new contentful data, but won't change if the page is visited within 1 second.
   }
 
 }
@@ -58,7 +70,11 @@ const renderOption = {
 
 
 export default function RecipeDetails({ recipe }) {
-  console.log(recipe);
+  //console.log(recipe);
+
+  if(!recipe) {
+    return <Skeleton/>
+  }
 
   const { featuredImage, title, cookingTime, ingredients, method } = recipe.fields;
 
